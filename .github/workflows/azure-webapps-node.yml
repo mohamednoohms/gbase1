@@ -6,9 +6,8 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: gbase1           # Your Azure Web App name
-  AZURE_WEBAPP_PACKAGE_PATH: './dist' # Path to deploy (build folder)
-  NODE_VERSION: '20.x'                # Node.js version
+  AZURE_WEBAPP_NAME: gbase1          # Your Azure Web App name
+  NODE_VERSION: '20.x'               # Node.js version
 
 permissions:
   contents: read
@@ -17,38 +16,26 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the repository
       - uses: actions/checkout@v4
 
-      # Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      # Cache npm modules for faster builds
-      - name: Cache node modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      # Install dependencies, build, and test
       - name: Install dependencies and build
         run: |
           npm ci
           npm run build
           npm run test --if-present
 
-      # Upload build folder as artifact
+      # Upload build folder as artifact (actual path)
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+          path: ./dist  # Make sure your build outputs to ./dist
 
   deploy:
     runs-on: ubuntu-latest
@@ -58,11 +45,12 @@ jobs:
       url: 'https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net'
 
     steps:
-      # Download build artifact
+      # Download artifact
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: node-app
+          path: ./deploy  # Download artifact to ./deploy folder
 
       # Deploy to Azure Web App
       - name: Deploy to Azure Web App
@@ -70,4 +58,4 @@ jobs:
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+          package: ./deploy  # Deploy from downloaded artifact folder
