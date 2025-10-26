@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: gbase1          # Your Azure Web App name
-  AZURE_WEBAPP_PACKAGE_PATH: '.'     # Path to deploy (root or build folder)
-  NODE_VERSION: '20.x'               # Node.js version
+  AZURE_WEBAPP_NAME: gbase1           # Your Azure Web App name
+  AZURE_WEBAPP_PACKAGE_PATH: './dist' # Path to deploy (build folder)
+  NODE_VERSION: '20.x'                # Node.js version
 
 permissions:
   contents: read
@@ -17,14 +17,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # Checkout the repository
       - uses: actions/checkout@v4
 
+      # Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
+      # Cache npm modules for faster builds
       - name: Cache node modules
         uses: actions/cache@v3
         with:
@@ -33,13 +36,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
+      # Install dependencies, build, and test
       - name: Install dependencies and build
         run: |
           npm ci
-          npm run build --if-present
+          npm run build
           npm run test --if-present
 
-      - name: Upload artifact for deployment
+      # Upload build folder as artifact
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: node-app
@@ -53,11 +58,13 @@ jobs:
       url: 'https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net'
 
     steps:
-      - name: Download artifact from build job
+      # Download build artifact
+      - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: node-app
 
+      # Deploy to Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
