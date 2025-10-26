@@ -1,45 +1,43 @@
-name: Deploy TSX Project
+name: Deploy static content to Pages
 
-# Trigger workflow on push to main
 on:
   push:
-    branches:
-      - main
+    branches: ['main']
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
 jobs:
-  build-and-deploy:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-
     steps:
-      # Step 1: Checkout code
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Node
+        uses: actions/setup-node@v5
         with:
-          persist-credentials: false
-
-      # Step 2: Set up Node.js
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      # Step 3: Install dependencies
+          node-version: lts/*
+          cache: 'npm'
       - name: Install dependencies
-        run: npm install
-
-      # Step 4: Build project
-      - name: Build project
-        run: |
-          npm run build
-          # If Next.js project, uncomment below
-          # npm run export
-
-      # Step 5: Deploy to GitHub Pages
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Use ./build for React, ./out for Next.js export
-          publish_dir: ./build
-          force_orphan: true
+          path: './dist'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
