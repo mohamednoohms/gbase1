@@ -8,7 +8,7 @@ import PartnersPage from './pages/PartnersPage';
 import CareersPage from './pages/CareersPage';
 import ContactPage from './pages/ContactPage';
 
-function App() {
+function App() { 
   const [currentPage, setCurrentPage] = useState('home');
 
   const renderPage = () => {
